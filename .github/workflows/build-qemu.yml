@@ -62,6 +62,7 @@ jobs:
             --enable-sdl --disable-gtk --disable-opengl \
             --disable-lzo --disable-snappy --disable-bzip2 --disable-lzfse \
             --disable-xen --disable-auth-pam" \
+            DH_OPTIONS="-Nqemu-system-gui" \
             DEB_BUILD_OPTIONS="parallel=$(nproc)" \
             dpkg-buildpackage -us -uc -b
           cp ../*.deb "${{ runner.temp }}/qemu-packages/"

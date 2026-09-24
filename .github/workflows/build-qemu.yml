@@ -57,6 +57,7 @@ jobs:
           cd "$(find . -maxdepth 1 -type d -name "qemu-*" -print -quit)"
           sed -i 's/^enable_linux_user = .*/enable_linux_user = disable/' debian/rules
           sed -i 's#${MAKE} -f ${CURDIR}/debian/optionrom.mak#${MAKE} -f ${CURDIR}/debian/optionrom.mak CC=i686-linux-gnu-gcc LD=i686-linux-gnu-ld OBJCOPY=i686-linux-gnu-objcopy#' debian/rules
+          printf '\nsystem_targets = i386\n' >> debian/rules
           QEMU_CONFIGURE_OPTIONS="--target-list=i386-softmmu --disable-linux-user \
             --enable-sdl --disable-gtk --disable-opengl \
             --disable-lzo --disable-snappy --disable-bzip2 --disable-lzfse \

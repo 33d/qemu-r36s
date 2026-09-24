@@ -54,7 +54,9 @@ jobs:
           apt-get source qemu
           apt-get build-dep --yes qemu
           cd "$(find . -maxdepth 1 -type d -name "qemu-*" -print -quit)"
-          QEMU_CONFIGURE_OPTIONS="--enable-sdl --disable-gtk --disable-opengl \
+          sed -i 's/^enable_linux_user = .*/enable_linux_user = disable/' debian/rules
+          QEMU_CONFIGURE_OPTIONS="--target-list=i386-softmmu --disable-linux-user \
+            --enable-sdl --disable-gtk --disable-opengl \
             --disable-lzo --disable-snappy --disable-bzip2 --disable-lzfse \
             --disable-xen --disable-auth-pam" \
             DEB_BUILD_OPTIONS="parallel=$(nproc)" \

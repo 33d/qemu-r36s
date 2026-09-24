@@ -58,11 +58,13 @@ jobs:
           sed -i 's/^enable_linux_user = .*/enable_linux_user = disable/' debian/rules
           sed -i 's#${MAKE} -f ${CURDIR}/debian/optionrom.mak#${MAKE} -f ${CURDIR}/debian/optionrom.mak CC=i686-linux-gnu-gcc LD=i686-linux-gnu-ld OBJCOPY=i686-linux-gnu-objcopy#' debian/rules
           printf '\nsystem_targets = i386\n' >> debian/rules
+          sed -i 's/|-SDL//' debian/rules
+          sed -i '/ui-gtk\.so/d; /usr\/share\/locale/d' debian/qemu-system-gui.install
+          printf 'usr/lib/*/qemu/ui-sdl.so\n' >> debian/qemu-system-gui.install
           QEMU_CONFIGURE_OPTIONS="--target-list=i386-softmmu --disable-linux-user \
             --enable-sdl --disable-gtk --disable-opengl \
             --disable-lzo --disable-snappy --disable-bzip2 --disable-lzfse \
             --disable-xen --disable-auth-pam" \
-            DH_OPTIONS="-Nqemu-system-gui" \
             DEB_BUILD_OPTIONS="parallel=$(nproc)" \
             dpkg-buildpackage -us -uc -b
           cp ../*.deb "${{ runner.temp }}/qemu-packages/"

@@ -1,0 +1,68 @@
+name: Build QEMU for Eoan
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Install pbuilder
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes debootstrap devscripts pbuilder ubuntu-keyring
+
+      - name: Create Eoan pbuilder base
+        env:
+          BASETGZ: ${{ runner.temp }}/eoan-arm64.tgz
+        run: |
+          sudo pbuilder create \
+            --basetgz "$BASETGZ" \
+            --distribution eoan \
+            --architecture arm64 \
+            --mirror http://old-releases.ubuntu.com/ubuntu \
+            --components "main universe"
+
+      - name: Download and build the Eoan source package
+        env:
+          BASETGZ: ${{ runner.temp }}/eoan-arm64.tgz
+          SOURCE_DIR: ${{ runner.temp }}/qemu-source
+          RESULT_DIR: ${{ runner.temp }}/qemu-packages
+        run: |
+          mkdir -p "$SOURCE_DIR" "$RESULT_DIR"
+          sudo pbuilder execute \
+            --basetgz "$BASETGZ" \
+            --bindmounts "$SOURCE_DIR,$RESULT_DIR" \
+            --save-after-exec \
+            -- /bin/bash -euxc '
+              cat > /etc/apt/sources.list <<EOF
+          deb http://old-releases.ubuntu.com/ubuntu eoan main universe
+          deb http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
+          deb-src http://old-releases.ubuntu.com/ubuntu eoan main universe
+          deb-src http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
+          EOF
+              apt-get -o Acquire::Check-Valid-Until=false update
+              apt-get install --yes dpkg-dev devscripts
+              cd "${{ runner.temp }}/qemu-source"
+              apt-get source qemu
+              apt-get build-dep --yes qemu
+              cd "$(find . -maxdepth 1 -type d -name "qemu-*" -print -quit)"
+              QEMU_CONFIGURE_OPTIONS="--enable-sdl --disable-gtk --disable-opengl" \
+                DEB_BUILD_OPTIONS="parallel=$(nproc)" \
+                dpkg-buildpackage -us -uc -b
+              cp ../*.deb "${{ runner.temp }}/qemu-packages/"
+            '
+
+      - name: Upload Debian packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-eoan-arm64
+          path: ${{ runner.temp }}/qemu-packages/*.deb
+          if-no-files-found: error

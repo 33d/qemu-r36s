@@ -49,12 +49,14 @@ jobs:
           deb-src http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
           APT
           apt-get -o Acquire::Check-Valid-Until=false update
-          apt-get install --yes dpkg-dev devscripts
+          apt-get install --yes dpkg-dev devscripts libsdl2-dev
           cd "${{ runner.temp }}/qemu-source"
           apt-get source qemu
           apt-get build-dep --yes qemu
           cd "$(find . -maxdepth 1 -type d -name "qemu-*" -print -quit)"
-          QEMU_CONFIGURE_OPTIONS="--enable-sdl --disable-gtk --disable-opengl" \
+          QEMU_CONFIGURE_OPTIONS="--enable-sdl --disable-gtk --disable-opengl \
+            --disable-lzo --disable-snappy --disable-bzip2 --disable-lzfse \
+            --disable-xen --disable-auth-pam" \
             DEB_BUILD_OPTIONS="parallel=$(nproc)" \
             dpkg-buildpackage -us -uc -b
           cp ../*.deb "${{ runner.temp }}/qemu-packages/"

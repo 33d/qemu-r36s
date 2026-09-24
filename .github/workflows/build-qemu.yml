@@ -35,31 +35,37 @@ jobs:
           BASETGZ: ${{ runner.temp }}/eoan-arm64.tgz
           SOURCE_DIR: ${{ runner.temp }}/qemu-source
           RESULT_DIR: ${{ runner.temp }}/qemu-packages
+          RUNSCRIPT: ${{ runner.temp }}/build-in-eoan.sh
         run: |
           mkdir -p "$SOURCE_DIR" "$RESULT_DIR"
+          cat > "$RUNSCRIPT" <<'EOF'
+          #!/bin/bash
+          set -eux
+
+          cat > /etc/apt/sources.list <<APT
+          deb http://old-releases.ubuntu.com/ubuntu eoan main universe
+          deb http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
+          deb-src http://old-releases.ubuntu.com/ubuntu eoan main universe
+          deb-src http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
+          APT
+          apt-get -o Acquire::Check-Valid-Until=false update
+          apt-get install --yes dpkg-dev devscripts
+          cd "${{ runner.temp }}/qemu-source"
+          apt-get source qemu
+          apt-get build-dep --yes qemu
+          cd "$(find . -maxdepth 1 -type d -name "qemu-*" -print -quit)"
+          QEMU_CONFIGURE_OPTIONS="--enable-sdl --disable-gtk --disable-opengl" \
+            DEB_BUILD_OPTIONS="parallel=$(nproc)" \
+            dpkg-buildpackage -us -uc -b
+          cp ../*.deb "${{ runner.temp }}/qemu-packages/"
+          EOF
+          chmod +x "$RUNSCRIPT"
           sudo pbuilder execute \
             --basetgz "$BASETGZ" \
             --bindmounts "$SOURCE_DIR" \
             --bindmounts "$RESULT_DIR" \
             --save-after-exec \
-            -- /bin/bash -euxc '
-              cat > /etc/apt/sources.list <<EOF
-          deb http://old-releases.ubuntu.com/ubuntu eoan main universe
-          deb http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
-          deb-src http://old-releases.ubuntu.com/ubuntu eoan main universe
-          deb-src http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
-          EOF
-              apt-get -o Acquire::Check-Valid-Until=false update
-              apt-get install --yes dpkg-dev devscripts
-              cd "${{ runner.temp }}/qemu-source"
-              apt-get source qemu
-              apt-get build-dep --yes qemu
-              cd "$(find . -maxdepth 1 -type d -name "qemu-*" -print -quit)"
-              QEMU_CONFIGURE_OPTIONS="--enable-sdl --disable-gtk --disable-opengl" \
-                DEB_BUILD_OPTIONS="parallel=$(nproc)" \
-                dpkg-buildpackage -us -uc -b
-              cp ../*.deb "${{ runner.temp }}/qemu-packages/"
-            '
+            -- "$RUNSCRIPT"
 
       - name: Upload Debian packages
         uses: actions/upload-artifact@v4

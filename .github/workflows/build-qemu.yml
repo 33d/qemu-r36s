@@ -39,7 +39,8 @@ jobs:
           mkdir -p "$SOURCE_DIR" "$RESULT_DIR"
           sudo pbuilder execute \
             --basetgz "$BASETGZ" \
-            --bindmounts "$SOURCE_DIR,$RESULT_DIR" \
+            --bindmounts "$SOURCE_DIR" \
+            --bindmounts "$RESULT_DIR" \
             --save-after-exec \
             -- /bin/bash -euxc '
               cat > /etc/apt/sources.list <<EOF

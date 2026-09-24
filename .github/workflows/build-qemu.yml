@@ -49,12 +49,14 @@ jobs:
           deb-src http://old-releases.ubuntu.com/ubuntu eoan-updates main universe
           APT
           apt-get -o Acquire::Check-Valid-Until=false update
-          apt-get install --yes dpkg-dev devscripts libsdl2-dev
+          apt-get install --yes dpkg-dev devscripts libsdl2-dev \
+            gcc-i686-linux-gnu binutils-i686-linux-gnu
           cd "${{ runner.temp }}/qemu-source"
           apt-get source qemu
           apt-get build-dep --yes qemu
           cd "$(find . -maxdepth 1 -type d -name "qemu-*" -print -quit)"
           sed -i 's/^enable_linux_user = .*/enable_linux_user = disable/' debian/rules
+          sed -i 's#${MAKE} -f ${CURDIR}/debian/optionrom.mak#${MAKE} -f ${CURDIR}/debian/optionrom.mak CC=i686-linux-gnu-gcc LD=i686-linux-gnu-ld OBJCOPY=i686-linux-gnu-objcopy#' debian/rules
           QEMU_CONFIGURE_OPTIONS="--target-list=i386-softmmu --disable-linux-user \
             --enable-sdl --disable-gtk --disable-opengl \
             --disable-lzo --disable-snappy --disable-bzip2 --disable-lzfse \
